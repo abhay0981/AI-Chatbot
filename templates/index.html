@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Chatbot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --bg-color: #f4f7fc;
+            --text-color: #222;
+            --user-bg: #daf0ff;
+            --bot-bg: #f0f0f0;
+            --input-bg: #fff;
+            --primary: #007bff;
+        }
+
+        body.dark {
+            --bg-color: #1e1e1e;
+            --text-color: #f4f4f4;
+            --user-bg: #005fcc;
+            --bot-bg: #2c2c2c;
+            --input-bg: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .chat-history {
+            width: 30%;
+            max-width: 300px;
+            background: var(--input-bg);
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            overflow-y: auto;
+            padding: 15px;
+            height: 700px;
+            position: relative;
+        }
+
+        .chatbox {
+            width: 60%;
+            max-width: 700px;
+            height: 500px;
+            background: var(--input-bg);
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-end;
+            margin: 10px 0;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 15px;
+            border-radius: 20px;
+            line-height: 1.5;
+            position: relative;
+            font-size: 15px;
+            word-wrap: break-word;
+            transition: background 0.3s;
+        }
+
+        .user .message-content {
+            background: var(--user-bg);
+        }
+
+        .bot .message-content {
+            background: var(--bot-bg);
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin: 0 10px;
+        }
+
+        .input-container {
+            display: flex;
+            width: 100%;
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background-color: var(--input-bg);
+            border-radius: 20px;
+            max-width: 700px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 18px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 30px;
+            outline: none;
+            background: var(--input-bg);
+            color: var(--text-color);
+            transition: border-color 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+
+        button, .mic-btn {
+            padding: 12px 18px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        button:hover, .mic-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .timestamp {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .toggle-mode {
+            margin-bottom: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            color: var(--primary);
+            transition: color 0.3s ease;
+            position: absolute;
+            right: 10px;
+            top: 40px;
+        }
+
+        .logout-link {
+            text-align: right;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 10px;
+            position: absolute;
+            right: 10px;
+            top: 10px;
+        }
+
+        .logout-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .logout-link a:hover {
+            text-decoration: underline;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .chatbox, .chat-history {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .input-container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="logout-link">
+        <a href="/logout">🔒 Logout</a>
+    </div>
+
+    <div class="toggle-mode" onclick="toggleTheme()">🌓 Dark/Light Mode</div>
+
+    <div class="container">
+        <div class="chat-history">
+            <h3>Chat History</h3>
+            <div id="chatHistory">
+                {% for chat in chat_history %}
+                    <div>
+                        <strong>User:</strong> {{ chat.user_message }}<br>
+                        <strong>Bot:</strong> {{ chat.bot_response }}<br>
+                        <small>{{ chat.timestamp }}</small>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="chatbox" id="chatbox"></div>
+    </div>
+
+    <div class="input-container">
+        <input type="text" id="userInput" placeholder="Type your message..." autocomplete="off" />
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+        <button class="mic-btn" onclick="startListening()">🎤</button>
+    </div>
+
+    <script>
+        function escapeHTML(str) {
+            return str.replace(/[&<>"']/g, function (m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+            });
+        }
+
+        function decodeHTML(str) {
+            var txt = document.createElement('textarea');
+            txt.innerHTML = str;
+            return txt.value;
+        }
+
+        function appendMessage(content, sender = 'bot') {
+            const chatbox = document.getElementById("chatbox");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `message ${sender}`;
+
+            const avatar = document.createElement("img");
+            avatar.className = "avatar";
+            avatar.src = sender === 'user'
+                ? "https://cdn-icons-png.flaticon.com/512/847/847969.png"
+                : "https://cdn-icons-png.flaticon.com/512/4712/4712027.png";
+
+            const contentDiv = document.createElement("div");
+            contentDiv.className = "message-content";
+            contentDiv.innerText = decodeHTML(escapeHTML(content));
+
+            const timestamp = document.createElement("div");
+            timestamp.className = "timestamp";
+            console.log("Message time:", new Date());
+            timestamp.innerText = new Date().toLocaleTimeString();
+            contentDiv.appendChild(timestamp);
+
+            if (sender === 'user') {
+                msgDiv.appendChild(contentDiv);
+                msgDiv.appendChild(avatar);
+            } else {
+                msgDiv.appendChild(avatar);
+                msgDiv.appendChild(contentDiv);
+                // Add TTS functionality here
+                speakText(content);
+            }
+
+            chatbox.appendChild(msgDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+     function speakText(text) {
+    // Remove emojis from the text using a regex that matches emojis and symbols
+    const textWithoutEmojis = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}\u{2B50}\u{203C}\u{2049}\u{00AE}\u{00A9}\u{2122}]/gu, '');
+
+    // Create a speech utterance without emojis
+    const speech = new SpeechSynthesisUtterance(textWithoutEmojis);
+    speech.lang = "en-US";  // You can change this for different languages
+    window.speechSynthesis.speak(speech);
+}
+
+        function sendMessage() {
+            const userInput = document.getElementById("userInput");
+            const sendBtn = document.getElementById("sendBtn");
+            let message = userInput.value.trim();
+            if (message === "") return;
+
+            appendMessage(message, 'user');
+            userInput.value = "";
+            userInput.focus();
+            sendBtn.disabled = true;
+
+            const chatbox = document.getElementById("chatbox");
+            const typingDiv = document.createElement("div");
+            typingDiv.className = "message bot";
+            typingDiv.innerHTML = `
+                <img class="avatar" src="https://cdn-icons-png.flaticon.com/512/4712/4712027.png" />
+                <div class="message-content"><em>Typing...</em></div>`;
+            chatbox.appendChild(typingDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+
+            fetch("/get?msg=" + encodeURIComponent(message))
+                .then(response => response.text())
+                .then(data => {
+                    typingDiv.remove();
+                    appendMessage(data, 'bot');
+                    sendBtn.disabled = false;
+                    userInput.focus();
+                })
+                .catch(error => {
+                    typingDiv.remove();
+                    appendMessage("❗ Sorry, there was an error processing your request.", 'bot');
+                    sendBtn.disabled = false;
+                    userInput.focus();
+                });
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle("dark");
+        }
+
+        function startListening() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.start();
+
+            recognition.onresult = function (event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById("userInput").value = transcript;
+            };
+
+            recognition.onerror = function (event) {
+                console.error("Speech recognition error", event);
+                alert("🎤 Could not recognize your speech. Try again.");
+            };
+        }
+
+        window.onload = function () {
+            appendMessage("👋 Hello! I'm your AI assistant. How can I help you today?", 'bot');
+
+            const userInput = document.getElementById("userInput");
+            const sendBtn = document.getElementById("sendBtn");
+
+            userInput.addEventListener("keypress", function (e) {
+                if (e.key === "Enter") sendMessage();
+            });
+
+            userInput.focus();
+        };
+    </script>
+</body>
+</html>
